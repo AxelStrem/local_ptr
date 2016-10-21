@@ -9,5 +9,5 @@ Also supports custom deleters (like unique_ptr, as a template parameter) and cus
 
 Usage: just include local_ptr.hpp
 
-lptr::local_ptr<T> pointer1 = new T*;
+lptr::local_ptr<T> pointer1 = new T*;  
 auto pointer2 = lptr::make_local<T>(args); //works like std::make_shared

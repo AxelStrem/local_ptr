@@ -14,9 +14,7 @@
 
 _LPTR_NAMESPACE_BEGIN
 
-	template <class T> using DefaultAllocator = std::allocator<T>;
-
-	template <class T, class Alloc> class DefaultDeleter
+	template <class T> class DefaultDeleter
 	{
 	public:
 		constexpr DefaultDeleter() noexcept = default;
@@ -25,9 +23,7 @@ _LPTR_NAMESPACE_BEGIN
 		{
 			static_assert(0 < sizeof(T),
 				"can't delete an incomplete type");
-			Alloc a;
-			a.destroy(ptr);
-			a.deallocate(ptr, 1);
+			delete ptr;
 		}
 	};
 
@@ -52,10 +48,23 @@ _LPTR_NAMESPACE_BEGIN
 		}
 	};
 
+
+	template <class T> class DefaultCBAlloc
+	{
+	public:
+		ControlBlock* Allocate(T* pObject)
+		{
+			return new ControlBlock();
+		}
+		void Deallocate(ControlBlock* pCB, T* pObject)
+		{
+			delete pCB;
+		}
+	};
+
 	template <class T,
-		template <typename> class Alloc = DefaultAllocator,
-		class D = typename DefaultDeleter<T, Alloc<T>>,
-		template <typename> class CBAlloc = Alloc>
+		class D = typename DefaultDeleter<T>,
+	    class CBAlloc = typename DefaultCBAlloc<T>>
 		class local_ptr
 	{
 	private:
@@ -66,32 +75,21 @@ _LPTR_NAMESPACE_BEGIN
 		{
 			if (pCB->Decrement())
 				return;
+			
+			CBAlloc cba;
+			cba.Deallocate(pCB, ptr);
+
 			D d;
 			d(ptr);
-			CBAlloc<ControlBlock> cbAlloc;
-			cbAlloc.destroy(pCB);
-			cbAlloc.deallocate(pCB, 1);
 		}
 
 		local_ptr(nullptr_t) {}
 
-		template<class... ArgT> void ConstructFromArgs(ArgT&&... Args)
-		{
-			Alloc<T> alloc;
-			ptr = alloc.allocate(1);
-			alloc.construct(ptr, Args);
-
-			CBAlloc<ControlBlock> cbAlloc;
-			pCB = cbAlloc.allocate(1);
-			cbAlloc.construct(pCB);
-		}
-
 	public:
 		local_ptr(T* pObj) : ptr(pObj)
 		{
-			CBAlloc<ControlBlock> cbAlloc;
-			pCB = cbAlloc.allocate(1);
-			cbAlloc.construct(pCB);
+			CBAlloc cbAlloc;
+			pCB = cbAlloc.Allocate(ptr);
 		}
 
 		local_ptr(const local_ptr& src) : ptr(src.ptr), pCB(src.pCB)
@@ -131,6 +129,13 @@ _LPTR_NAMESPACE_BEGIN
 			Release();
 		}
 	};
+
+template<class T, class... ArgT> local_ptr<T> make_local(ArgT&&... Args)
+{
+	T* ptr = new T(Args...);
+
+	return local_ptr<T>(ptr);
+}
 
 _LPTR_NAMESPACE_END
 

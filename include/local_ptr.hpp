@@ -9,8 +9,7 @@
 #define _LPTR_NAMESPACE_END
 #endif
 
-
-#include <memory>
+#include<utility>
 
 _LPTR_NAMESPACE_BEGIN
 
@@ -49,35 +48,63 @@ _LPTR_NAMESPACE_BEGIN
 	};
 
 
-	template <class T> class DefaultCBAlloc
+	template <class T> class DefaultRefCounter
 	{
+		ControlBlock* pCB;
 	public:
-		ControlBlock* Allocate(T* pObject)
+		DefaultRefCounter() {}
+		DefaultRefCounter(const DefaultRefCounter& src) : pCB(src.pCB) {}
+
+		void Allocate(T* pObject)
 		{
-			return new ControlBlock();
+			pCB = new ControlBlock();
 		}
-		void Deallocate(ControlBlock* pCB, T* pObject)
+		void Deallocate(T* pObject)
 		{
 			delete pCB;
+		}
+
+		void Increment(T* pObject)
+		{
+			return pCB->Increment();
+		}
+
+		int Decrement(T* pObject)
+		{
+			return pCB->Decrement();
+		}
+
+		int GetRefcount(T* pObject)
+		{
+			return pCB->GetRefcount();
+		}
+
+		T* ForwardObject(T* pObject)
+		{
+			return pObject;
+		}
+
+		T* RevertObject(T* pObject)
+		{
+			return pObject;
 		}
 	};
 
 	template <class T,
 		class D = typename DefaultDeleter<T>,
-	    class CBAlloc = typename DefaultCBAlloc<T>>
+	    class RefCounter = typename DefaultRefCounter<T>>
 		class local_ptr
 	{
 	private:
 		T* ptr;
-		ControlBlock* pCB;
+		RefCounter mRC;
 
 		void Release()
 		{
-			if (pCB->Decrement())
+			if (mRC.Decrement(ptr))
 				return;
 			
-			CBAlloc cba;
-			cba.Deallocate(pCB, ptr);
+			mRC.Deallocate(ptr);
 
 			D d;
 			d(ptr);
@@ -88,13 +115,12 @@ _LPTR_NAMESPACE_BEGIN
 	public:
 		local_ptr(T* pObj) : ptr(pObj)
 		{
-			CBAlloc cbAlloc;
-			pCB = cbAlloc.Allocate(ptr);
+			mRC.Allocate(ptr);
 		}
 
-		local_ptr(const local_ptr& src) : ptr(src.ptr), pCB(src.pCB)
+		local_ptr(const local_ptr& src) : ptr(src.ptr), mRC(src.mRC)
 		{
-			pCB->Increment();
+			mRC.Increment(ptr);
 		}
 
 		local_ptr& operator=(const local_ptr& src)
@@ -102,26 +128,30 @@ _LPTR_NAMESPACE_BEGIN
 			Release();
 
 			ptr = src.ptr;
-			pCB = src.pCB;
+			mRC = src.pCB;
+
+			return *this;
 		}
 
-		local_ptr(local_ptr&& src) : ptr(src.ptr), pCB(src.pCB)
+		local_ptr(local_ptr&& src) : ptr(src.ptr), pCB(src.mRC)
 		{}
 
 		local_ptr& operator=(local_ptr&& src)
 		{
-			ptr = src.ptr;
-			pCB = src.pCB;
+			std::swap(ptr,src.ptr);
+			std::swap(mRC,src.mRC);
+
+			return *this;
 		}
 
-		T* get()
+		decltype(mRC.ForwardObject(ptr)) get()
 		{
-			return ptr;
+			return mRC.ForwardObject(ptr);
 		}
 
-		int refcount()
+		int use_count()
 		{
-			return pCB->GetRefcount();
+			return mRC.GetRefcount(ptr);
 		}
 
 		~local_ptr()
@@ -135,6 +165,51 @@ template<class T, class... ArgT> local_ptr<T> make_local(ArgT&&... Args)
 	T* ptr = new T(Args...);
 
 	return local_ptr<T>(ptr);
+}
+
+template<class T> class intrusiveCB
+{
+public:
+	ControlBlock mCB;
+	T mObject;
+	template<class... ArgT> intrusiveCB(ArgT&&... Args) : mObject(std::forward<ArgT...>(Args...)) {}
+};
+
+template<class T> class IntrusiveRefCounter
+{
+public:
+	void Allocate(intrusiveCB<T>* pObject)
+	{}
+	void Deallocate(intrusiveCB<T>* pObject)
+	{}
+
+	void Increment(intrusiveCB<T>* pObject)
+	{
+		return pObject->mCB.Increment();
+	}
+
+	int Decrement(intrusiveCB<T>* pObject)
+	{
+		return pObject->mCB.Decrement();
+	}
+
+	int GetRefcount(intrusiveCB<T>* pObject)
+	{
+		return pObject->mCB.GetRefcount();
+	}
+
+	T* ForwardObject(intrusiveCB<T>* pObject)
+	{
+		return &(pObject->mObject);
+	}
+};
+
+template<class T> using intrusive_ptr = local_ptr<intrusiveCB<T>, DefaultDeleter<intrusiveCB<T>>, IntrusiveRefCounter<T>>;
+
+template<class T, class... ArgT> intrusive_ptr<T> make_intrusive(ArgT&&... Args)
+{
+	intrusiveCB<T>* ptr = new intrusiveCB<T>(Args...);
+	return intrusive_ptr<T>(ptr);
 }
 
 _LPTR_NAMESPACE_END

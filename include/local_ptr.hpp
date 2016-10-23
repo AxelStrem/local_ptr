@@ -113,10 +113,14 @@ _LPTR_NAMESPACE_BEGIN
 		local_ptr(nullptr_t) {}
 
 	public:
+		typedef decltype(mRC.ForwardObject(ptr)) element_pointer;
+		typedef typename std::remove_pointer<element_pointer>::type element_type;
+
 		local_ptr(T* pObj) : ptr(pObj)
 		{
 			mRC.Allocate(ptr);
 		}
+
 
 		local_ptr(const local_ptr& src) : ptr(src.ptr), mRC(src.mRC)
 		{
@@ -136,17 +140,43 @@ _LPTR_NAMESPACE_BEGIN
 		local_ptr(local_ptr&& src) : ptr(src.ptr), pCB(src.mRC)
 		{}
 
+		void swap(local_ptr& src)
+		{
+			std::swap(ptr, src.ptr);
+			std::swap(mRC, src.mRC);
+		}
+
+		template<class P> void reset(P* n_ptr)
+		{
+			T* t_ptr = mRC.RevertObject(n_ptr);
+			local_ptr(n_ptr).swap(*this);
+		}
+
+		void reset()
+		{
+			reset(nullptr);
+		}
+
 		local_ptr& operator=(local_ptr&& src)
 		{
-			std::swap(ptr,src.ptr);
-			std::swap(mRC,src.mRC);
+			swap(src);
 
 			return *this;
 		}
 
-		decltype(mRC.ForwardObject(ptr)) get()
+		element_type* get()
 		{
 			return mRC.ForwardObject(ptr);
+		}
+
+		element_type& operator*()
+		{
+			return (*get());
+		}
+
+		element_type* operator->()
+		{
+			return get();
 		}
 
 		int use_count()

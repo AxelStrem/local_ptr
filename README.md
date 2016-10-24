@@ -12,7 +12,8 @@ Also supports custom deleters (like unique_ptr, as a template parameter) and cus
 Usage: just include local_ptr.hpp
 
     lptr::local_ptr<T> pointer1 = new T*;  
-    auto pointer2 = lptr::make_local<T>(args); //works like std::make_shared, but not intrusive; use make_intrusive instead
+    auto pointer2 = lptr::make_local<T>(args); //works like std::make_shared,
+                                               //but not intrusive; use make_intrusive instead
 
 # intrusive_ptr
 `local_ptr` specialization for intrusive reference counter: object and ref-counter are adjacent in memory and allocated with one `new` call.

@@ -41,7 +41,7 @@ _LPTR_NAMESPACE_BEGIN
 			return --refcount;
 		}
 
-		int GetRefcount()
+		int GetRefcount() const
 		{
 			return refcount;
 		}
@@ -74,23 +74,23 @@ _LPTR_NAMESPACE_BEGIN
 			return pCB->Decrement();
 		}
 
-		int GetRefcount(T* pObject)
+		int GetRefcount(T* pObject) const
 		{
 			return pCB->GetRefcount();
 		}
 
-		T* ForwardObject(T* pObject)
+		T* ForwardObject(T* pObject) const
 		{
 			return pObject;
 		}
 
-		T* RevertObject(T* pObject)
+		T* RevertObject(T* pObject) const
 		{
 			return pObject;
 		}
 	};
 
-	template <class T,
+template <class T,
 		class D = typename DefaultDeleter<T>,
 	    class RefCounter = typename DefaultRefCounter<T>>
 		class local_ptr
@@ -164,7 +164,7 @@ _LPTR_NAMESPACE_BEGIN
 			return *this;
 		}
 
-		element_type* get()
+		element_type* get() const
 		{
 			return mRC.ForwardObject(ptr);
 		}
@@ -184,11 +184,51 @@ _LPTR_NAMESPACE_BEGIN
 			return mRC.GetRefcount(ptr);
 		}
 
+		bool unique() const
+		{
+			return use_count() == 1;
+		}
+
+		explicit operator bool() const
+		{
+			return ptr!=nullptr;
+		}
+
 		~local_ptr()
 		{
 			Release();
 		}
 	};
+
+template <class T, class D, class R> bool operator==(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() == b.get();
+}
+
+template <class T, class D, class R> bool operator!=(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() != b.get();
+}
+
+template <class T, class D, class R> bool operator<(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() < b.get();
+}
+
+template <class T, class D, class R> bool operator>(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() > b.get();
+}
+
+template <class T, class D, class R> bool operator>=(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() >= b.get();
+}
+
+template <class T, class D, class R> bool operator<=(const local_ptr<T, D, R> &a, const local_ptr<T, D, R> &b)
+{
+	return a.get() <= b.get();
+}
 
 template<class T, class... ArgT> local_ptr<T> make_local(ArgT&&... Args)
 {
@@ -223,12 +263,12 @@ public:
 		return pObject->mCB.Decrement();
 	}
 
-	int GetRefcount(intrusiveCB<T>* pObject)
+	int GetRefcount(intrusiveCB<T>* pObject) const
 	{
 		return pObject->mCB.GetRefcount();
 	}
 
-	T* ForwardObject(intrusiveCB<T>* pObject)
+	T* ForwardObject(intrusiveCB<T>* pObject) const
 	{
 		return &(pObject->mObject);
 	}

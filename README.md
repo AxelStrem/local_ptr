@@ -1,6 +1,6 @@
 # local_ptr
 Shared pointer with relaxed requirements:
-- no multithreading;
+- no thread-safe reference counting (by default);
 - no weak_ptr;
 - no type-erased deleter;
 - no type-erased allocator;

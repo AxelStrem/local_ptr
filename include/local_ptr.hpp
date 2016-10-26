@@ -9,22 +9,22 @@
 #define _LPTR_NAMESPACE_END
 #endif
 
-#include<utility>
+#include <utility>
 
 _LPTR_NAMESPACE_BEGIN
 
-	template <class T> class DefaultDeleter
+class DefaultAllocator
+{
+public:
+	static char* allocate(size_t size)
 	{
-	public:
-		constexpr DefaultDeleter() noexcept = default;
-
-		void operator()(T* ptr) const noexcept
-		{
-			static_assert(0 < sizeof(T),
-				"can't delete an incomplete type");
-			delete ptr;
-		}
-	};
+		return static_cast<char*>(malloc(size));
+	}
+	static void free(char* ptr)
+	{
+		free(ptr);
+	}
+};
 
 	class ControlBlock
 	{
@@ -91,7 +91,7 @@ _LPTR_NAMESPACE_BEGIN
 	};
 
 template <class T,
-		class D = typename DefaultDeleter<T>,
+		class A = DefaultAllocator,
 	    class RefCounter = typename DefaultRefCounter<T>>
 		class local_ptr
 	{
@@ -105,9 +105,8 @@ template <class T,
 				return;
 			
 			mRC.Deallocate(ptr);
-
-			D d;
-			d(ptr);
+			ptr->T::~T();
+			A::free((char*)(ptr));
 		}
 
 		local_ptr(nullptr_t) {}
@@ -230,11 +229,16 @@ template <class T, class D, class R> bool operator<=(const local_ptr<T, D, R> &a
 	return a.get() <= b.get();
 }
 
+template<class T, class Allocator, class... ArgT> local_ptr<T,Allocator> allocate_local(ArgT&&... Args)
+{
+	T* ptr = Allocator::allocate(sizeof(T));
+	new (ptr) T(std::forward<ArgT...>(Args...));
+	return local_ptr<T,Allocator>(ptr);
+}
+
 template<class T, class... ArgT> local_ptr<T> make_local(ArgT&&... Args)
 {
-	T* ptr = new T(Args...);
-
-	return local_ptr<T>(ptr);
+	return allocate_local<T, DefaultAllocator, ArgT...>(std::forward<ArgT...>(Args...));
 }
 
 template<class T> class intrusiveCB
@@ -274,12 +278,18 @@ public:
 	}
 };
 
-template<class T> using intrusive_ptr = local_ptr<intrusiveCB<T>, DefaultDeleter<intrusiveCB<T>>, IntrusiveRefCounter<T>>;
+template<class T, class A = DefaultAllocator> using intrusive_ptr = local_ptr<intrusiveCB<T>, A, IntrusiveRefCounter<T>>;
+
+template<class T, class Allocator, class... ArgT> intrusive_ptr<T,Allocator> allocate_intrusive(ArgT&&... Args)
+{
+	intrusiveCB<T>* ptr = (intrusiveCB<T>*)(Allocator::allocate(sizeof(intrusiveCB<T>)));
+	new (ptr) intrusiveCB<T>(std::forward<ArgT...>(Args...));
+	return intrusive_ptr<T, Allocator>(ptr);
+}
 
 template<class T, class... ArgT> intrusive_ptr<T> make_intrusive(ArgT&&... Args)
 {
-	intrusiveCB<T>* ptr = new intrusiveCB<T>(Args...);
-	return intrusive_ptr<T>(ptr);
+	return allocate_intrusive<T, DefaultAllocator, ArgT...>(std::forward<ArgT...>(Args...));
 }
 
 _LPTR_NAMESPACE_END

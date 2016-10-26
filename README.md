@@ -7,7 +7,7 @@ Shared pointer with relaxed requirements:
 
 So pretty much just a reference counted unique_ptr, dumb but lightweight.  
 Mimics the behavior of **shared_ptr**.
-Also supports custom deleters (like unique_ptr, as a template parameter) and custom allocators for reference counter.
+Also supports custom allocators/deleters (like unique_ptr, as a template parameter) and custom allocators for reference counter.
 
 Usage: just include local_ptr.hpp
 

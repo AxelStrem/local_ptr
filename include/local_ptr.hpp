@@ -178,7 +178,7 @@ template <class T,
 			return get();
 		}
 
-		int use_count()
+		int use_count() const
 		{
 			return mRC.GetRefcount(ptr);
 		}

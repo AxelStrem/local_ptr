@@ -231,7 +231,7 @@ template <class T, class D, class R> bool operator<=(const local_ptr<T, D, R> &a
 
 template<class T, class Allocator, class... ArgT> local_ptr<T,Allocator> allocate_local(ArgT&&... Args)
 {
-	T* ptr = Allocator::allocate(sizeof(T));
+	T* ptr = (T*)Allocator::allocate(sizeof(T));
 	new (ptr) T(std::forward<ArgT...>(Args...));
 	return local_ptr<T,Allocator>(ptr);
 }

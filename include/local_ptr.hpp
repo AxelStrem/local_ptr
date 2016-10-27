@@ -131,12 +131,12 @@ template <class T,
 			Release();
 
 			ptr = src.ptr;
-			mRC = src.pCB;
+			mRC = src.mRC;
 
 			return *this;
 		}
 
-		local_ptr(local_ptr&& src) : ptr(src.ptr), pCB(src.mRC)
+		local_ptr(local_ptr&& src) : ptr(src.ptr), mRC(src.mRC)
 		{}
 
 		void swap(local_ptr& src)

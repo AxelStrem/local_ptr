@@ -86,6 +86,7 @@ before_script:
   - git submodule update --init
   - mkdir build
   - cd build
+  - cmake -DCMAKE_BUILD_TYPE=Debug ..
 
 script:
   - cmake --build .

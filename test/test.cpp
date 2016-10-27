@@ -22,8 +22,6 @@ public:
 
 int TestIntAllocator::value = 0;
 
-static int TestIntAllocator::value = 0;
-
 TEST_CASE("basic tests", "[file]")
 {
 	SECTION("make_local")

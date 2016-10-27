@@ -1,4 +1,4 @@
-# local_ptr
+# local_ptr [![Build Status](https://travis-ci.org/AxelStrem/local_ptr.svg?branch=master)](https://travis-ci.org/AxelStrem/local_ptr)
 Shared pointer with relaxed requirements:
 - no thread-safe reference counting (by default);
 - no weak_ptr;

@@ -92,7 +92,7 @@ public:
 
 template <class T,
 		class A = DefaultAllocator,
-	    class RefCounter = typename DefaultRefCounter<T>>
+	    class RefCounter = typename DefaultRefCounter<T> >
 		class local_ptr
 	{
 	private:

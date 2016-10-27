@@ -22,7 +22,7 @@ public:
 	}
 	static void free(char* ptr)
 	{
-		free(ptr);
+		::free(ptr);
 	}
 };
 
@@ -92,7 +92,7 @@ public:
 
 template <class T,
 		class A = DefaultAllocator,
-	    class RefCounter = typename DefaultRefCounter<T> >
+	    class RefCounter = class DefaultRefCounter<T> >
 		class local_ptr
 	{
 	private:

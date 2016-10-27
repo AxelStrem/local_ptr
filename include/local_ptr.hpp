@@ -109,7 +109,7 @@ template <class T,
 			A::free((char*)(ptr));
 		}
 
-		local_ptr(nullptr_t) {}
+		local_ptr(std::nullptr_t) {}
 
 	public:
 		typedef decltype(mRC.ForwardObject(ptr)) element_pointer;
